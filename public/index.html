@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Realtime Chat</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="chat-container">
+    <header class="chat-header">
+      <div class="profile">
+        <div class="avatar">💬</div>
+        <div class="meta">
+          <div class="name">Chat App</div>
+          <div class="status">online</div>
+        </div>
+      </div>
+    </header>
+
+    <main id="chat-box" class="chat-box" aria-live="polite" aria-atomic="true"></main>
+
+    <form id="input-area" class="input-area" onsubmit="return false;">
+      <input id="message" class="message-input" type="text" autocomplete="off" placeholder="Type a message..." />
+      <button id="sendBtn" class="send-btn" aria-label="Send message">Send</button>
+    </form>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+
+  <script>
+    const socket = io();
+    const chatBox = document.getElementById('chat-box');
+    const sendBtn = document.getElementById('sendBtn');
+    const messageInput = document.getElementById('message');
+
+    const myUserId = Math.floor(Math.random() * 1000000);
+
+    // Helper: append message
+    function appendMessage(msg) {
+      const el = document.createElement('div');
+      el.classList.add('message');
+
+      if (msg.userId === myUserId) {
+        el.classList.add('my-message');
+      } else {
+        el.classList.add('other-message');
+        const label = document.createElement('div');
+        label.classList.add('sender-label');
+        label.textContent = msg.name || ('User ' + (msg.userId ?? ''));
+        el.appendChild(label);
+      }
+
+      const text = document.createElement('div');
+      text.classList.add('message-text');
+      text.textContent = msg.text;
+      el.appendChild(text);
+
+      chatBox.appendChild(el);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Receive messages from server – append ALL messages
+    socket.on('message', (msg) => appendMessage(msg));
+
+    // Send message
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      const payload = {
+        userId: myUserId,
+        text,
+        name: 'You'
+      };
+
+      socket.emit('User-Message', payload); // send to server only
+      messageInput.value = '';
+      messageInput.focus();
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    window.addEventListener('load', () => messageInput.focus());
+  </script>
+</body>
+</html>
